@@ -1,10 +1,4 @@
-import sys
-from pathlib import Path
-
-root = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(root / "backend"))
-
-from schema_loader import DishRegistry, DishNotFoundError
+from backend.schema_loader import DishRegistry, DishNotFoundError
 
 
 def test_list_dishes_contains_all_data_driven_items():
@@ -49,7 +43,10 @@ def test_validate_order_returns_structured_errors_for_missing_required_field():
     result = registry.validate_order("french_tacos", invalid_payload)
     assert result.valid is False
     assert any(v.field == "size" for v in result.violations)
-    assert any(v.constraint.endswith("required") or "minCount" in v.constraint for v in result.violations)
+    assert any(
+        v.constraint in {"MinCountConstraintComponent", "RequiredConstraintComponent"} or "minCount" in v.constraint.lower()
+        for v in result.violations
+    )
 
 
 def test_validate_order_raises_for_unknown_dish():

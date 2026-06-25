@@ -35,7 +35,12 @@ def _extract_violations(shacl_graph: Graph) -> List[ValidationViolation]:
         focus_node = str(shacl_graph.value(result, SH.focusNode) or "")
         result_path = str(shacl_graph.value(result, SH.resultPath) or "")
         message = str(shacl_graph.value(result, SH.resultMessage) or "Validation failed")
-        constraint = str(shacl_graph.value(result, SH.sourceConstraintComponent) or "sh:Constraint")
+        constraint_uri = str(shacl_graph.value(result, SH.sourceConstraintComponent) or "sh:Constraint")
+
+        if "#" in constraint_uri:
+            constraint = constraint_uri.split("#")[-1]
+        else:
+            constraint = constraint_uri.split("/")[-1]
 
         if result_path:
             field = result_path.split("/")[-1]
