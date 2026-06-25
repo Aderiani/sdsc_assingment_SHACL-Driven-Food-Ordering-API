@@ -1,0 +1,30 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.com/vocab/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:FrenchTacosShape
+    a sh:NodeShape ;
+    sh:targetClass ex:FrenchTacos ;
+    sh:property [
+        sh:path ex:size ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("small" "medium" "large") ;
+    ] ;
+    sh:property [
+        sh:path ex:filling ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("chicken" "beef" "vegetarian") ;
+    ] ;
+    sh:property [
+        sh:path ex:sauce ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("harissa" "mayo" "mustard") ;
+    ] ;
+    sh:property [
+        sh:path ex:notes ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] .

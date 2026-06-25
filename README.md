@@ -8,7 +8,7 @@ The frontend is intentionally generic: it should render schema returned by the b
 
 - `docs/MODELLING.md` — modelling decisions, assumptions, and translation rules for JSON-LD, SHACL, and frontend schema.
 - `tests/` — valid and invalid payload examples plus runtime expectations.
-- `.github/workflows/ci.yml` — CI workflow that installs dependencies and runs tests on pull requests.
+- `backend/README.md` — backend setup and run instructions.
 - `requirements.txt` — Python dependencies for the backend and test tooling.
 
 ## Design Assumptions
@@ -17,9 +17,9 @@ The frontend is intentionally generic: it should render schema returned by the b
    - The backend will use `GET /dishes/{dish_id}/schema` and `POST /dishes/{dish_id}/order`.
    - The payload body contains only dish-specific form fields; the dish is determined from the route.
 
-2. Error responses use a structured format based on RFC 7807 Problem Details with a `violations` array:
-   - `type`, `title`, `status`, `detail`
-   - `violations[]` contains `field`, `code`, and `message`
+2. Error responses use a structured validation format with an `errors` array:
+   - `valid`, `errors`
+   - `errors[]` contains `field`, `constraint`, and `message`
 
 3. The backend translates SHACL shapes to a JSON Schema-like form schema.
    - This keeps the frontend generic and avoids hardcoding dish-specific logic.
@@ -54,20 +54,17 @@ Example error response format:
 
 ```json
 {
-  "type": "https://example.com/probs/validation",
-  "title": "Validation Failed",
-  "status": 400,
-  "detail": "One or more form fields failed validation.",
-  "violations": [
+  "valid": false,
+  "errors": [
     {
-      "field": "/size",
-      "code": "required",
+      "field": "size",
+      "constraint": "sh:minCount",
       "message": "Field 'size' is required."
     },
     {
-      "field": "/spiciness",
-      "code": "range",
-      "message": "Value 10 exceeds maximum allowed value of 5."
+      "field": "spiciness",
+      "constraint": "sh:maxExclusive",
+      "message": "Value 10 exceeds the allowed range."
     }
   ]
 }
@@ -96,5 +93,13 @@ The invalid set now covers:
 
 ## Development Notes
 
-This repository is currently structured for backend implementation.
-The next development step is to add a Python backend under `backend/` that loads JSON-LD and SHACL shapes, generates form schema dynamically, and returns structured validation errors.
+This repository includes a Python backend under `backend/` that loads JSON-LD and SHACL shapes, generates form schema dynamically, and returns structured validation errors.
+
+A third dish, `pizza`, has been added via `backend/data/pizza/` without any backend code changes, demonstrating the intended data-driven extensibility.
+
+The backend is driven by data in `backend/data/` and exposes:
+- `GET /dishes`
+- `GET /dishes/{dish_id}/schema`
+- `POST /dishes/{dish_id}/order`
+
+For setup and run instructions, see `backend/README.md`.

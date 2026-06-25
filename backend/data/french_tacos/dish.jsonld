@@ -1,0 +1,12 @@
+{
+  "@context": {
+    "dish_id": "http://example.com/vocab/dishId",
+    "label": "http://example.com/vocab/label",
+    "size": "http://example.com/vocab/size",
+    "filling": "http://example.com/vocab/filling",
+    "sauce": "http://example.com/vocab/sauce",
+    "notes": "http://example.com/vocab/notes"
+  },
+  "dish_id": "french_tacos",
+  "label": "French Tacos"
+}

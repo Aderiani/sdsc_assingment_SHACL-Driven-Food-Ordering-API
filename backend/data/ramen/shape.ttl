@@ -1,0 +1,31 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.com/vocab/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:RamenShape
+    a sh:NodeShape ;
+    sh:targetClass ex:Ramen ;
+    sh:property [
+        sh:path ex:broth ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("tonkotsu" "shoyu" "miso" "shio") ;
+    ] ;
+    sh:property [
+        sh:path ex:noodles ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("curly" "straight" "wavy") ;
+    ] ;
+    sh:property [
+        sh:path ex:toppings ;
+        sh:datatype xsd:string ;
+        sh:maxCount 5 ;
+    ] ;
+    sh:property [
+        sh:path ex:spiciness ;
+        sh:datatype xsd:integer ;
+        sh:minCount 1 ;
+        sh:minExclusive -1 ;
+        sh:maxExclusive 6 ;
+    ] .

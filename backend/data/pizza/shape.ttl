@@ -1,0 +1,29 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix ex: <http://example.com/vocab/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ex:PizzaShape
+    a sh:NodeShape ;
+    sh:targetClass ex:Pizza ;
+    sh:property [
+        sh:path ex:size ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("small" "medium" "large") ;
+    ] ;
+    sh:property [
+        sh:path ex:crust ;
+        sh:datatype xsd:string ;
+        sh:minCount 1 ;
+        sh:in ("thin" "thick") ;
+    ] ;
+    sh:property [
+        sh:path ex:toppings ;
+        sh:datatype xsd:string ;
+        sh:maxCount 4 ;
+    ] ;
+    sh:property [
+        sh:path ex:notes ;
+        sh:datatype xsd:string ;
+        sh:maxCount 1 ;
+    ] .

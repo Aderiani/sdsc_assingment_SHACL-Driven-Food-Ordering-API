@@ -1,0 +1,12 @@
+{
+  "@context": {
+    "dish_id": "http://example.com/vocab/dishId",
+    "label": "http://example.com/vocab/label",
+    "broth": "http://example.com/vocab/broth",
+    "noodles": "http://example.com/vocab/noodles",
+    "toppings": "http://example.com/vocab/toppings",
+    "spiciness": "http://example.com/vocab/spiciness"
+  },
+  "dish_id": "ramen",
+  "label": "Ramen"
+}

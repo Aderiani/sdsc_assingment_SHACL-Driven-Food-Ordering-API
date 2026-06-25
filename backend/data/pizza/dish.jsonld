@@ -1,0 +1,12 @@
+{
+  "@context": {
+    "dish_id": "http://example.com/vocab/dishId",
+    "label": "http://example.com/vocab/label",
+    "size": "http://example.com/vocab/size",
+    "crust": "http://example.com/vocab/crust",
+    "toppings": "http://example.com/vocab/toppings",
+    "notes": "http://example.com/vocab/notes"
+  },
+  "dish_id": "pizza",
+  "label": "Pizza"
+}
