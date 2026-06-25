@@ -91,6 +91,11 @@ The invalid set now covers:
 - `null` values
 - array cardinality violations
 
+## Continuous Integration
+
+A GitHub Actions workflow is configured in `.github/workflows/python-tests.yml` to run the backend test suite on every push and pull request to `main`.
+The workflow installs required system packages, installs Python dependencies, and executes `python3 -m pytest -q`.
+
 ## Development Notes
 
 This repository includes a Python backend under `backend/` that loads JSON-LD and SHACL shapes, generates form schema dynamically, and returns structured validation errors.
