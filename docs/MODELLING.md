@@ -143,3 +143,50 @@ No frontend code changes should be necessary.
 - Conditional validation is not covered in the MVP.
 - Shape hot reload is not implemented initially.
 - The error format is a documented contract, not a standardized industry format.
+
+## Developer Guide — SHACL → Form mapping
+
+Purpose
+- Short how-to for engineers who need to adjust or extend how SHACL shapes are translated into the frontend form schema.
+
+Where to edit
+- Primary implementation: `backend/form_generator.py`.
+  - `generate_form_schema(metadata, shapes_graph)` produces the final schema returned by the API.
+  - `_get_shacl_property_shapes(graph)` extracts property-shape details from a SHACL graph.
+  - `_datatype_to_json_type(datatype)` maps XSD datatypes to simple JSON types.
+
+Common mapping rules (implemented and recommended)
+- `sh:datatype` → JSON `type` (string, integer, boolean). See `_datatype_to_json_type`.
+- `sh:in` → `enum` (list of allowed values).
+- `sh:minCount = 1` → `required: true`.
+- `sh:maxCount > 1` → treat as `type: array` with `maxItems`.
+- Numeric ranges (`sh:minInclusive`, `sh:maxInclusive`, `sh:minExclusive`, `sh:maxExclusive`) → `minimum` / `maximum` or custom validation metadata.
+- `sh:pattern` → preserve as `pattern` (regex) in the schema or under a `validation` metadata object.
+
+How to add a new mapping
+1. Update `_get_shacl_property_shapes` to extract the SHACL predicate you need (for example, `sh:pattern` or `sh:minInclusive`) and include it in the returned shape definition dictionary.
+2. Update `generate_form_schema` to read the new shape attribute and convert it into the frontend schema representation (for example, set `field_schema['pattern'] = value` or include `field_schema['minimum'] = int(value)`).
+3. Preserve unfamiliar constraints in a metadata bucket so validation still happens server-side, for example:
+
+```py
+field_schema['shacl'] = shape_def  # include raw shape details for debugging/frontend hints
+```
+
+Testing and verification
+- Unit tests: add small tests under `tests/` that call `DishRegistry.get_schema('your_dish')` and assert the resulting schema contains the new keys/values.
+- Integration tests: validate end-to-end by calling `POST /dishes/<id>/order` with valid/invalid payloads and asserting structured violations are produced as expected.
+- Manual verification: run `./start.sh`, open `http://127.0.0.1:8001`, select the dish, and confirm the field renders and client-side messages match expectations.
+
+Best practices
+- Keep translation logic simple; if a constraint cannot be expressed in the frontend schema, still validate it server-side and emit clear violation metadata.
+- Add a test for every new mapping (both valid and invalid cases) and include example payloads in `tests/valid` and `tests/invalid` when appropriate.
+- Avoid changing the public contract returned by `GET /dishes/{dish_id}/schema` without a versioning plan; add non-breaking metadata fields where possible.
+
+Examples
+- To support `sh:pattern`, extract `SH.pattern` in `_get_shacl_property_shapes` and set `field_schema['pattern'] = value` in `generate_form_schema`.
+- To expose a numeric `minimum` from `sh:minInclusive`, add it to the shape def and map to `field_schema['minimum']`.
+
+Notes
+- The frontend is intentionally generic — prefer adding small, well-tested translation helpers rather than ad-hoc UI logic for a single dish.
+- When in doubt, validate on submit: the SHACL validator is authoritative and will catch constraints that are hard to express in the form schema.
+
