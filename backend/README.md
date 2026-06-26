@@ -18,7 +18,7 @@ This project uses a Python FastAPI backend to load dish definitions from `backen
 Start the API server:
 
 ```bash
-uvicorn backend.app:app --reload
+python3 -m uvicorn backend.app:app --host 127.0.0.1 --port 8000
 ```
 
 ## Endpoints
@@ -32,5 +32,5 @@ uvicorn backend.app:app --reload
 Run the backend tests with:
 
 ```bash
-pytest tests/test_backend.py
+python3 -m pytest
 ```
