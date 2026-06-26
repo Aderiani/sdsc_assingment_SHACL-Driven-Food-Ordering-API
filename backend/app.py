@@ -1,11 +1,19 @@
 from dataclasses import asdict
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from .schema_loader import DishRegistry, DishNotFoundError
 from .validation import ValidationErrorResponse
 
 app = FastAPI(title="SHACL-driven Dish Ordering API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["*"],
+)
 registry = DishRegistry("backend/data")
 
 

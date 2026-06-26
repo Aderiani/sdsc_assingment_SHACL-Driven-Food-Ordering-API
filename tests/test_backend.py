@@ -1,4 +1,9 @@
+from fastapi.testclient import TestClient
+
+from backend.app import app
 from backend.schema_loader import DishRegistry, DishNotFoundError
+
+client = TestClient(app)
 
 
 def test_list_dishes_contains_all_data_driven_items():
@@ -56,3 +61,10 @@ def test_validate_order_raises_for_unknown_dish():
     except DishNotFoundError:
         return
     assert False, "Expected DishNotFoundError"
+
+
+def test_root_page_serves_frontend_shell():
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Dish Ordering" in response.text
+    assert "Choose a dish" in response.text
