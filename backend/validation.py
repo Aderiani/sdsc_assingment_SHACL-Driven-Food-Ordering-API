@@ -2,7 +2,7 @@ from dataclasses import asdict, dataclass
 from typing import Any, Dict, List
 
 from pyshacl import validate
-from rdflib import BNode, Graph, Literal, Namespace
+from rdflib import BNode, Graph, Literal, Namespace, URIRef
 from rdflib.namespace import RDF, SH, XSD
 
 
@@ -53,13 +53,25 @@ def _extract_violations(shacl_graph: Graph) -> List[ValidationViolation]:
     return violations
 
 
-def _payload_to_graph(payload: Dict[str, Any], shapes_graph: Graph) -> Graph:
+def _resolve_predicate_uri(term: str, context: Dict[str, Any] | None = None) -> URIRef:
+    if context:
+        if term in context and isinstance(context[term], str):
+            return URIRef(context[term])
+        if ":" in term:
+            prefix, local_name = term.split(":", 1)
+            prefix_value = context.get(prefix)
+            if isinstance(prefix_value, str):
+                return URIRef(prefix_value + local_name)
+
+    return URIRef(f"http://example.com/vocab/{term}")
+
+
+def _payload_to_graph(payload: Dict[str, Any], shapes_graph: Graph, context: Dict[str, Any] | None = None) -> Graph:
     data_graph = Graph()
-    ex = Namespace("http://example.com/vocab/")
     subject = BNode()
 
     for key, value in payload.items():
-        predicate = ex[key]
+        predicate = _resolve_predicate_uri(key, context)
         if isinstance(value, list):
             for item in value:
                 data_graph.add((subject, predicate, Literal(item)))
@@ -79,8 +91,8 @@ def _payload_to_graph(payload: Dict[str, Any], shapes_graph: Graph) -> Graph:
     return data_graph
 
 
-def validate_payload(payload: Dict[str, Any], shapes_graph: Graph) -> ValidationResult:
-    data_graph = _payload_to_graph(payload, shapes_graph)
+def validate_payload(payload: Dict[str, Any], shapes_graph: Graph, context: Dict[str, Any] | None = None) -> ValidationResult:
+    data_graph = _payload_to_graph(payload, shapes_graph, context)
 
     conforms, report_graph, report_text = validate(
         data_graph=data_graph,

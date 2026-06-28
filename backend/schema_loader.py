@@ -32,6 +32,7 @@ class DishRegistry:
                 dishes[dish_id] = {
                     "id": dish_id,
                     "metadata": dish_metadata,
+                    "context": dish_metadata.get("@context", {}),
                     "shape_path": shape_file,
                     "shape_graph": self._load_shape(shape_file),
                 }
@@ -60,4 +61,4 @@ class DishRegistry:
 
     def validate_order(self, dish_id: str, payload: Dict[str, Any]) -> ValidationResult:
         dish = self.get_dish(dish_id)
-        return validate_payload(payload, dish["shape_graph"])
+        return validate_payload(payload, dish["shape_graph"], dish.get("context"))

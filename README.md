@@ -111,10 +111,47 @@ The frontend additionally maps SHACL report details into human-friendly messages
 
 Each dish lives in `backend/data/<dish-id>/` and contains at least:
 
-- `dish.jsonld` — human-readable JSON-LD metadata
-- `shape.ttl` — SHACL shape
+- `dish.jsonld` — JSON-LD metadata with `@context`, `dish_id`, `label`, and field definitions
+- `shape.ttl` — SHACL shape defining validation constraints
 
-For detailed guide of how to generate such files see docs.
+#### JSON-LD Structure
+
+Each dish JSON-LD document includes a `@context` that maps field names to semantic IRIs, enabling proper RDF triple generation during validation.
+
+Example:
+
+```json
+{
+  "@context": {
+    "size": "http://example.com/vocab/size",
+    "filling": "http://example.com/vocab/filling",
+    "sauce": "http://example.com/vocab/sauce"
+  },
+  "dish_id": "french-tacos",
+  "label": "French Tacos"
+}
+```
+
+#### SHACL Shape Constraints
+
+SHACL shapes define validation rules for each dish. Supported constraints include:
+
+- `sh:minCount` / `sh:maxCount` — required fields and cardinality
+- `sh:in` — enumerated allowed values
+- `sh:datatype` — XSD datatype (string, integer, boolean, etc.)
+- `sh:minInclusive` / `sh:maxInclusive` — numeric ranges (in shape, validated server-side)
+- `sh:pattern` — regex validation (in shape, validated server-side)
+
+Example SHACL constraint:
+
+```ttl
+sh:property [
+  sh:path ex:size ;
+  sh:datatype xsd:string ;
+  sh:minCount 1 ;
+  sh:in ("small" "medium" "large")
+]
+```
 
 ### Add a new dish
 
@@ -122,7 +159,7 @@ To add a new dish, create a folder under `backend/data/` with `dish.jsonld` and 
 
 ### API Contract
 
-Recommended endpoints:
+Backend endpoints:
 
 - `GET /dishes` — list available dish identifiers and labels.
 - `GET /dishes/{dish_id}/schema` — return the generated form schema for the requested dish.
@@ -168,11 +205,15 @@ pip install -r requirements.txt
 python3 -m pytest
 ```
 
-## Test Coverage
+### Test Coverage
 
-The `tests/` folder contains both valid and invalid payloads for French Tacos and Ramen.
-The invalid set now covers:
+The `tests/` folder contains:
+- **test_backend.py** — unit and integration tests for API endpoints, schema generation, and validation
+- **TEST_CASES.md** — detailed documentation of valid and invalid test payloads with expected SHACL violations
+- **valid/** — example payloads that should pass validation
+- **invalid/** — example payloads with specific validation failures
 
+The invalid set covers:
 - missing required fields
 - invalid enumeration values
 - out-of-range numeric values
@@ -180,18 +221,69 @@ The invalid set now covers:
 - `null` values
 - array cardinality violations
 
+For a detailed description of each test case, expected errors, and validation rules, see [tests/TEST_CASES.md](tests/TEST_CASES.md).
+
 ## Continuous Integration
 
 A GitHub Actions workflow is configured in `.github/workflows/python-tests.yml` to run the backend test suite on every push and pull request to `main`.
 The workflow installs required system packages, installs Python dependencies, and executes `python3 -m pytest -q`.
+
+## Developer Guide: Extending SHACL → Form Mapping
+
+The translation from SHACL shapes to frontend-consumable form schema happens in `backend/form_generator.py`.
+
+### Key functions
+
+- `generate_form_schema(metadata, shapes_graph)` — produces the final schema returned by the API
+- `_get_shacl_property_shapes(graph)` — extracts property-shape details from a SHACL graph
+- `_datatype_to_json_type(datatype)` — maps XSD datatypes to JSON types
+
+### Common mapping rules
+
+| SHACL Constraint | Mapping | Backend Form Schema |
+|---|---|---|
+| `sh:datatype` | JSON datatype | `"type": "string"` or `"integer"` |
+| `sh:in` | enumerated values | `"enum": [...]` |
+| `sh:minCount = 1` | required field | `"required": true` |
+| `sh:maxCount > 1` | array cardinality | `"type": "array", "maxItems": N` |
+| `sh:minInclusive` / `sh:maxInclusive` | numeric range | Server-side validation metadata |
+| `sh:pattern` | regex format | Server-side validation metadata |
+
+### How to add a new mapping
+
+1. Update `_get_shacl_property_shapes()` to extract the SHACL predicate (e.g., `sh:pattern` or `sh:minInclusive`) and include it in the returned shape definition.
+2. Update `generate_form_schema()` to read the shape attribute and convert it into the frontend schema (e.g., set `field_schema['pattern'] = value`).
+3. For constraints that cannot be expressed in the frontend schema, preserve them as validation metadata so server-side SHACL validation still enforces them.
+4. Add unit tests under `tests/` for the new mapping (both valid and invalid cases).
+
+Example: To support `sh:pattern`, extract `SH.pattern` in `_get_shacl_property_shapes` and set `field_schema['pattern'] = value` in `generate_form_schema`.
+
+### Best practices
+
+- Keep translation logic simple; unsupported constraints still validate server-side.
+- Add tests for every new mapping (valid and invalid cases).
+- Avoid hardcoding dish-specific logic in the frontend; prefer adding backend schema metadata.
+- When in doubt, validate on submit: the SHACL validator is authoritative.
+
+## Assumptions & Limitations
+
+- All dish-specific field metadata is derived from backend JSON-LD and SHACL files.
+- The frontend consumes the schema without enforcing business rules independently.
+- Conditional validation (e.g., `sh:or`, `sh:and`) is validated server-side but not exposed in the form schema.
+- Shape hot reload is not implemented; shapes are loaded at startup.
+- The error format is a documented contract, not a standardized industry format.
+- The current payload-to-RDF conversion assumes a single flat BNode with scalar predicates; nested objects are not yet supported.
 
 ## Notes
 
 - CORS: For development the backend enables CORS to allow the standalone frontend on `127.0.0.1:8001`. For production, restrict origins in `backend/app.py`.
 - The frontend's API base URL is `http://127.0.0.1:8000` by default (see `frontend/index.html` if you need to change it).
 
-## Improvement Ideas
+## Future Improvements
 
-- idea1
-- diea2
-- idea3
+- Expand SHACL support: add `sh:minInclusive`, `sh:maxInclusive`, `sh:pattern`, `sh:length`, `sh:or`, `sh:and`, `sh:xone`, `sh:closed` to form schema generation.
+- Map SHACL labels and descriptions: use `sh:name` and `sh:description` to populate field labels and help text in the generated schema.
+- Richer JSON Schema output: generate full JSON Schema + UI schema instead of simple field list, including `minimum`, `maximum`, `minLength`, `maxLength`, `pattern`, `dependencies`.
+- Support nested objects and linked nodes: extend payload-to-RDF conversion to handle nested properties and node references.
+- Hot reload: allow dynamic discovery of new dish files without server restart.
+- Frontend enhancements: better array field rendering (multi-select, repeatable inputs, tag list) and client-side validation hints. 

@@ -1,7 +1,10 @@
+from rdflib import BNode, Graph, Literal, Namespace
+from rdflib.namespace import RDF, SH, XSD
 from fastapi.testclient import TestClient
 
 from backend.app import app
 from backend.schema_loader import DishRegistry, DishNotFoundError
+from backend.validation import validate_payload
 
 client = TestClient(app)
 
@@ -52,6 +55,28 @@ def test_validate_order_returns_structured_errors_for_missing_required_field():
         v.constraint in {"MinCountConstraintComponent", "RequiredConstraintComponent"} or "minCount" in v.constraint.lower()
         for v in result.violations
     )
+
+
+def test_validate_payload_uses_jsonld_context_to_resolve_property_iris():
+    shapes_graph = Graph()
+    custom = Namespace("http://custom.example/terms/")
+    shape = BNode()
+
+    shapes_graph.add((shape, RDF.type, SH.NodeShape))
+    property_shape = BNode()
+    shapes_graph.add((shape, SH.property, property_shape))
+    shapes_graph.add((property_shape, SH.path, custom.size))
+    shapes_graph.add((property_shape, SH.datatype, XSD.string))
+    shapes_graph.add((property_shape, SH.minCount, Literal(1)))
+
+    result = validate_payload(
+        {"size": "large"},
+        shapes_graph,
+        context={"size": str(custom.size)},
+    )
+
+    assert result.valid is True
+    assert result.violations == []
 
 
 def test_validate_order_raises_for_unknown_dish():
